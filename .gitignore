@@ -61,16 +61,4 @@ htmlcov/
 *.sqlite
 *.sqlite3
 
-# Temporary files
-*.tmp
-temp/
-tmp/
 
-# Documentation - Exclude from GitHub
-LEARNING_GUIDE.md
-CONTRIBUTING.md
-CHANGELOG.md
-SECURITY.md
-__init__.py
-.github/
-docs/
