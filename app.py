@@ -3,6 +3,7 @@ import requests
 import pandas as pd
 import json
 import html
+import time
 from urllib.parse import quote
 from datetime import datetime
 from dataclasses import dataclass, asdict
@@ -75,55 +76,102 @@ class AddressService:
             InvalidResponseError: On invalid JSON response
         """
         headers = {'User-Agent': api_config.USER_AGENT}
-        
+        request_params = dict(params)
+
         if force_english:
             headers['Accept-Language'] = 'en-US,en;q=0.9'
-            params['accept-language'] = 'en'
+            request_params['accept-language'] = 'en'
         
-        try:
-            logger.debug(f"API request to: {url}")
-            
-            response = requests.get(
-                url,
-                params=params,
-                headers=headers,
-                timeout=api_config.TIMEOUT_SECONDS
-            )
-            
-            # Check for rate limiting
-            if response.status_code == 429:
-                logger.warning("Rate limit exceeded (429)")
-                raise RateLimitExceededError()
-            
-            # Raise for other HTTP errors
-            response.raise_for_status()
-            
-            # Parse JSON
-            data = response.json()
-            logger.info(f"API response successful: {type(data)}")
-            return data
-            
-        except requests.Timeout:
-            logger.error(f"Request timeout after {api_config.TIMEOUT_SECONDS}s")
-            raise APIConnectionError(
-                f"Request timed out after {api_config.TIMEOUT_SECONDS} seconds",
-                status_code=None
-            )
-            
-        except requests.HTTPError as e:
-            logger.error(f"HTTP error: {e.response.status_code}")
-            raise APIConnectionError(
-                f"HTTP error: {e.response.status_code}",
-                status_code=e.response.status_code
-            )
-            
-        except requests.RequestException as e:
-            logger.error(f"Request failed: {type(e).__name__}")
-            raise APIConnectionError(f"Request failed")
-            
-        except json.JSONDecodeError as e:
-            logger.error("Invalid JSON response received")
-            raise InvalidResponseError("Invalid JSON response from API")
+        for attempt in range(1, api_config.MAX_RETRIES + 1):
+            try:
+                logger.debug(
+                    "API request to: %s (attempt %s/%s)",
+                    url,
+                    attempt,
+                    api_config.MAX_RETRIES
+                )
+
+                response = requests.get(
+                    url,
+                    params=request_params,
+                    headers=headers,
+                    timeout=api_config.TIMEOUT_SECONDS
+                )
+
+                if response.status_code == 429:
+                    retry_after = response.headers.get('Retry-After')
+                    try:
+                        wait_time = float(retry_after) if retry_after else 0.0
+                    except ValueError:
+                        wait_time = 0.0
+
+                    if wait_time <= 0:
+                        wait_time = api_config.RETRY_BACKOFF_FACTOR ** (attempt - 1)
+
+                    logger.warning(
+                        "Rate limit exceeded (429), attempt %s/%s, retry in %.2fs",
+                        attempt,
+                        api_config.MAX_RETRIES,
+                        wait_time
+                    )
+
+                    if attempt >= api_config.MAX_RETRIES:
+                        raise RateLimitExceededError(wait_time=wait_time)
+
+                    time.sleep(wait_time)
+                    continue
+
+                # Raise for other HTTP errors
+                response.raise_for_status()
+
+                # Parse JSON
+                data = response.json()
+                logger.info(f"API response successful: {type(data)}")
+                return data
+
+            except requests.Timeout:
+                logger.warning(
+                    "Request timeout on attempt %s/%s",
+                    attempt,
+                    api_config.MAX_RETRIES
+                )
+                if attempt >= api_config.MAX_RETRIES:
+                    logger.error(f"Request timeout after {api_config.TIMEOUT_SECONDS}s")
+                    raise APIConnectionError(
+                        f"Request timed out after {api_config.TIMEOUT_SECONDS} seconds",
+                        status_code=None
+                    )
+
+                wait_time = api_config.RETRY_BACKOFF_FACTOR ** (attempt - 1)
+                time.sleep(wait_time)
+
+            except requests.HTTPError as e:
+                status_code = e.response.status_code if e.response is not None else None
+                logger.error(f"HTTP error: {status_code}")
+                raise APIConnectionError(
+                    f"HTTP error: {status_code}",
+                    status_code=status_code
+                ) from e
+
+            except requests.RequestException as e:
+                logger.warning(
+                    "Request failed (%s) on attempt %s/%s",
+                    type(e).__name__,
+                    attempt,
+                    api_config.MAX_RETRIES
+                )
+                if attempt >= api_config.MAX_RETRIES:
+                    logger.error(f"Request failed: {type(e).__name__}")
+                    raise APIConnectionError("Request failed") from e
+
+                wait_time = api_config.RETRY_BACKOFF_FACTOR ** (attempt - 1)
+                time.sleep(wait_time)
+
+            except json.JSONDecodeError as e:
+                logger.error("Invalid JSON response received")
+                raise InvalidResponseError("Invalid JSON response from API") from e
+
+        raise APIConnectionError("Request failed after retries")
     
     def _reverse_geocode(
         self,
@@ -182,11 +230,11 @@ class AddressService:
                 timestamp=timestamp
             )]
             
-        except (InvalidCoordinatesError, LocationNotFoundError):
+        except GeoServiceException:
             raise
         except Exception as e:
             logger.error(f"Reverse geocoding failed: {type(e).__name__}")
-            raise APIConnectionError("Reverse geocoding failed")
+            raise APIConnectionError("Reverse geocoding failed") from e
     
     def search(self, raw_query: str) -> List[LocationData]:
         """
@@ -220,31 +268,57 @@ class AddressService:
                     'q': query,
                     'format': 'json',
                     'limit': api_config.MAX_SEARCH_RESULTS,
-                    'countrycodes': api_config.DEFAULT_COUNTRY_CODE
+                    'countrycodes': api_config.DEFAULT_COUNTRY_CODE,
+                    'addressdetails': 1
                 },
                 force_english=False
             )
-            
+
             if not search_results:
                 raise LocationNotFoundError(query)
-            
+
             # Validate response
             ResponseValidator.validate_osm_search_response(search_results)
-            
-            # Process results
+
+            # Process results directly from search response; reverse only as fallback
             results = []
+            direct_results_count = 0
+            fallback_reverse_count = 0
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
             for item in search_results:
                 lat = item.get('lat')
                 lng = item.get('lon')
-                
+                address = item.get('display_name')
+                zip_code = item.get('address', {}).get('postcode', '—')
+
+                if lat and lng and address:
+                    results.append(LocationData(
+                        original_query=query,
+                        address=address,
+                        zip_code=zip_code,
+                        lat=str(lat),
+                        lng=str(lng),
+                        status="OK",
+                        timestamp=timestamp
+                    ))
+                    direct_results_count += 1
+                    continue
+
                 if lat and lng:
-                    reverse_results = self._reverse_geocode(lat, lng, query)
-                    results.extend(reverse_results)
-            
+                    fallback_results = self._reverse_geocode(lat, lng, query)
+                    results.extend(fallback_results)
+                    fallback_reverse_count += len(fallback_results)
+
             if not results:
                 raise LocationNotFoundError(query)
-            
-            logger.debug(f"Search successful: {len(results)} results found")
+
+            logger.debug(
+                "Search successful: %s results (%s direct, %s fallback reverse)",
+                len(results),
+                direct_results_count,
+                fallback_reverse_count
+            )
             return results
             
         except GeoServiceException:
@@ -253,7 +327,7 @@ class AddressService:
         except Exception as e:
             # Catch any unexpected errors
             logger.error(f"Unexpected error in search: {type(e).__name__}")
-            raise APIConnectionError("Search failed")
+            raise APIConnectionError("Search failed") from e
 
 def inject_design_system() -> None:
     """Inject CSS design system into the app."""

@@ -81,18 +81,29 @@ class CoordinateValidator:
     @staticmethod
     def parse_from_query(query: str) -> Optional[Tuple[float, float]]:
         """Extract coordinates from query."""
-        coord_pattern = r"([-+]?\d{1,3}\.\d+)"
-        matches = re.findall(coord_pattern, query)
-        
-        if len(matches) >= 2:
+        normalized_query = query.strip()
+
+        patterns = [
+            # Strict coordinate pair: "31.7683, 35.2137" or "31 35"
+            r"^\s*([-+]?\d{1,3}(?:\.\d+)?)\s*[,\s]\s*([-+]?\d{1,3}(?:\.\d+)?)\s*$",
+            # Labeled coordinate pair: "lat: 31.7683, lon: 35.2137"
+            r"^\s*lat(?:itude)?\s*[:=]\s*([-+]?\d{1,3}(?:\.\d+)?)\s*[,\s]+"
+            r"(?:lon|lng|longitude)\s*[:=]\s*([-+]?\d{1,3}(?:\.\d+)?)\s*$",
+        ]
+
+        for pattern in patterns:
+            match = re.match(pattern, normalized_query, re.IGNORECASE)
+            if not match:
+                continue
+
             try:
-                lat, lng = CoordinateValidator.validate(matches[0], matches[1])
+                lat, lng = CoordinateValidator.validate(match.group(1), match.group(2))
                 logger.info(f"Extracted coordinates: {lat}, {lng}")
                 return lat, lng
             except InvalidCoordinatesError:
-                logger.debug("Query contains numbers but not valid coordinates")
+                logger.debug("Query looks like coordinates but values are invalid")
                 return None
-        
+
         return None
 
 
