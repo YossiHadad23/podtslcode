@@ -552,5 +552,96 @@ hr {
     background: transparent !important;
 }
 
+@media (max-width: 768px) {
+    .block-container {
+        max-width: 100% !important;
+        padding: var(--space-5) var(--space-4) !important;
+    }
+
+    .main .block-container {
+        padding-top: var(--space-4) !important;
+    }
+
+    .brand-header {
+        padding: var(--space-6) 0 var(--space-5);
+    }
+
+    .brand-header::before {
+        width: 280px;
+        height: 280px;
+        filter: blur(50px);
+    }
+
+    .brand-logo {
+        width: 64px;
+        height: 64px;
+        margin-bottom: var(--space-4);
+    }
+
+    .brand-logo-icon {
+        font-size: 28px;
+    }
+
+    .brand-title {
+        font-size: 2.1rem;
+        line-height: 1.15;
+    }
+
+    .brand-tagline {
+        font-size: 0.72rem;
+        letter-spacing: 0.18em;
+    }
+
+    .stTextInput > div > div > input {
+        font-size: 1rem !important;
+        padding: 16px 18px !important;
+        border-radius: var(--radius-lg) !important;
+    }
+
+    .result-card,
+    .data-card,
+    .streamlit-expanderContent {
+        padding: var(--space-5) !important;
+        border-radius: var(--radius-md) !important;
+    }
+
+    .result-address {
+        font-size: 1.2rem;
+        line-height: 1.5;
+    }
+
+    .empty-state {
+        padding: var(--space-6) var(--space-3) var(--space-7);
+    }
+
+    .empty-illustration {
+        font-size: 4.4rem;
+    }
+
+    .empty-title {
+        font-size: 1.6rem;
+    }
+
+    .empty-description {
+        font-size: 0.95rem;
+        line-height: 1.55;
+    }
+
+    div[data-testid="column"] {
+        width: 100% !important;
+        flex: 1 1 100% !important;
+    }
+
+    .stDownloadButton > button,
+    .stLinkButton > a,
+    .stButton > button,
+    .stFormSubmitButton > button {
+        width: 100% !important;
+        min-height: 44px !important;
+        padding: 12px 14px !important;
+        font-size: 0.9rem !important;
+    }
+}
+
 </style>
 """
