@@ -207,7 +207,7 @@ class AddressService:
             logger.debug("Search initiated")
             
             # Try to parse as coordinates first
-            coords = CoordinateValidator.parse_from_query(query)
+            coords = CoordinateValidator.parse_from_query(query, strict=True)
             if coords:
                 lat, lng = coords
                 logger.debug("Query identified as coordinates")
