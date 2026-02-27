@@ -79,8 +79,14 @@ class CoordinateValidator:
         return lat_float, lng_float
     
     @staticmethod
-    def parse_from_query(query: str) -> Optional[Tuple[float, float]]:
-        """Extract coordinates from query."""
+    def parse_from_query(query: str, strict: bool = False) -> Optional[Tuple[float, float]]:
+        """Extract coordinates from query.
+
+        Args:
+            query: Raw user query
+            strict: When True, raise InvalidCoordinatesError if query format
+                looks like coordinates but values are out of range/invalid.
+        """
         normalized_query = query.strip()
 
         patterns = [
@@ -102,6 +108,8 @@ class CoordinateValidator:
                 return lat, lng
             except InvalidCoordinatesError:
                 logger.debug("Query looks like coordinates but values are invalid")
+                if strict:
+                    raise
                 return None
 
         return None
