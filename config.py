@@ -1,7 +1,7 @@
 """Configuration Module."""
 
 from dataclasses import dataclass
-from typing import Final
+from typing import Final, Tuple
 
 
 @dataclass(frozen=True)
@@ -35,6 +35,15 @@ class UIConfig:
     DISPLAY_HISTORY_ITEMS: int = 5
     MAX_QUERY_LENGTH: int = 500
     MAX_ADDRESS_DISPLAY_LENGTH: int = 60
+    EXAMPLE_QUERIES: Tuple[str, ...] = (
+        "קישון 87 תל אביב",
+        "דיזנגוף סנטר תל אביב",
+        "31.7683, 35.2137",
+        "Ben Gurion Airport",
+    )
+    SEARCH_HELP_TEXT: str = "Hebrew queries are supported. Results are normalized to English."
+    RESULT_MAP_ZOOM: int = 15
+    RESULT_NOTE: str = "Results use the best available OpenStreetMap match for Israel."
 
 
 @dataclass(frozen=True)

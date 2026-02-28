@@ -3,7 +3,6 @@ import requests
 import pandas as pd
 import json
 import html
-import time
 from urllib.parse import quote
 from datetime import datetime
 from dataclasses import dataclass, asdict
@@ -278,231 +277,337 @@ def inject_design_system() -> None:
     """Inject CSS design system into the app."""
     st.markdown(DESIGN_SYSTEM_CSS, unsafe_allow_html=True)
 
-def render_header() -> None:
-    """Render the application header."""
+
+def render_search_hero() -> Tuple[str, bool]:
+    """Render the hero copy and search form."""
     st.markdown("""
-        <div class="brand-header">
-            <div class="brand-logo">
-                <span class="brand-logo-icon">◉</span>
-            </div>
-            <h1 class="brand-title">GeoStudio AI</h1>
-            <p class="brand-tagline">Location Intelligence Platform</p>
-        </div>
+        <section class="hero-shell">
+            <div class="hero-badge">NODE_IL // ONLINE</div>
+            <h1 class="hero-title">GEOSTUDIO//IL</h1>
+        </section>
     """, unsafe_allow_html=True)
 
-def render_empty_state() -> None:
-    """Render the empty state with example search suggestions."""
-    st.markdown("""
-        <div class="empty-state">
-            <div class="empty-illustration">🌍</div>
-            <h2 class="empty-title">Discover Any Location</h2>
-            <p class="empty-description">
-                Search by address, city name, or GPS coordinates to get verified location data with interactive maps.
-            </p>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    st.write("")
-    
-    # Example buttons — centered with proper spacing
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        if st.button("🏢 Azrieli Tower, Tel Aviv", use_container_width=True, key="ex1"):
-            st.session_state.search_query = "Azrieli Tower, Tel Aviv"
-            st.rerun()
-    with col2:
-        if st.button("📍 31.7683, 35.2137", use_container_width=True, key="ex2"):
-            st.session_state.search_query = "31.7683, 35.2137"
-            st.rerun()
-    with col3:
-        if st.button("🌊 Tel Aviv Port", use_container_width=True, key="ex3"):
-            st.session_state.search_query = "Tel Aviv Port"
-            st.rerun()
-
-def render_result_card(data: LocationData) -> None:
-    """Render the unified result card with location data."""
-    # Security: Escape HTML entities to prevent XSS
-    safe_address = html.escape(data.address)
-    postal_value = data.zip_code if data.zip_code and data.zip_code != "—" else "Not Available"
-    safe_postal = html.escape(postal_value)
-    
-    # Main Result Card — unified layout with all data
-    st.markdown(f"""
-        <div class="result-card">
-            <div class="result-status">Location Found</div>
-            <div class="result-address">{safe_address}</div>
-            <div class="result-data-grid">
-                <div class="result-data-item">
-                    <div class="data-label">📮 Postal Code</div>
-                    <div class="data-value">{safe_postal}</div>
-                </div>
-                <div class="result-data-item">
-                    <div class="data-label">📍 Latitude</div>
-                    <div class="data-value">{float(data.lat):.6f}</div>
-                </div>
-                <div class="result-data-item">
-                    <div class="data-label">📍 Longitude</div>
-                    <div class="data-value">{float(data.lng):.6f}</div>
-                </div>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
-
-    # Action Buttons
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.download_button(
-            "📥 Export JSON",
-            data=json.dumps(asdict(data), indent=2, ensure_ascii=False),
-            file_name=f"location_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
-            mime="application/json",
-            use_container_width=True
-        )
-    
-    with col2:
-        # Security: URL-encode coordinates to prevent injection
-        safe_coords = quote(f"{data.lat},{data.lng}", safe='')
-        st.link_button(
-            "🗺️ Open in Google Maps",
-            f"https://www.google.com/maps/search/?api=1&query={safe_coords}",
-            use_container_width=True
-        )
-    
-    with col3:
-        if st.button("🔄 New Search", use_container_width=True, key="new_search"):
-            st.session_state.last_result = None
-            st.rerun()
-
-    # Interactive Map (expanded by default for better UX)
-    st.write("")
-    with st.expander("🗺️ Interactive Map", expanded=True):
-        try:
-            st.map(
-                pd.DataFrame({
-                    'lat': [float(data.lat)], 
-                    'lon': [float(data.lng)]
-                }),
-                zoom=15
-            )
-        except Exception as e:
-            logger.error("Map display error: %s", type(e).__name__)
-            st.error("Could not display map")
-
-def render_search() -> Tuple[str, bool]:
-    """
-    Render the search form.
-    
-    Returns:
-        Tuple of (query, submitted)
-    """
     with st.form("search", clear_on_submit=False):
-        col1, col2 = st.columns([5, 1])
-        with col1:
-            q = st.text_input(
-                "Search",
-                value=st.session_state.get('search_query', ''),
-                placeholder="Enter address, city, or coordinates...",
-                label_visibility="collapsed"
-            )
-        with col2:
-            submitted = st.form_submit_button("🔍 Search", use_container_width=True)
-    
-    # Only consume the search_query after it's been used
-    if 'search_query' in st.session_state:
-        del st.session_state.search_query
-    
-    return q, submitted
+        st.markdown('<div class="search-form-marker"></div>', unsafe_allow_html=True)
+        st.markdown('<div class="terminal-label">INPUT :: ADDRESS / COORDINATES</div>', unsafe_allow_html=True)
+        query = st.text_input(
+            "Search",
+            value=st.session_state.get("last_query", ""),
+            placeholder="type hebrew address or lat,lon",
+            label_visibility="collapsed"
+        )
+        submitted = st.form_submit_button("Search", use_container_width=True)
 
-def render_error(message: str, error_type: str = "warning") -> None:
-    """Render a styled error message."""
-    icon = "⚠️" if error_type == "warning" else "❌"
-    css_class = "error-card--warning" if error_type == "warning" else "error-card--error"
-    safe_message = html.escape(message)
-    
-    st.markdown(f"""
-        <div class="error-card {css_class}">
-            <span class="error-icon">{icon}</span>
-            <span class="error-message">{safe_message}</span>
+    return query, submitted
+
+
+def render_example_chips() -> None:
+    """Render example chips in a symmetric two-by-two layout."""
+    st.markdown("""
+        <div class="example-shell">
+            <div class="example-label">Quick examples</div>
         </div>
     """, unsafe_allow_html=True)
+
+    examples = ui_config.EXAMPLE_QUERIES
+    for row_start in range(0, len(examples), 2):
+        row = st.columns(2)
+        for index, example in enumerate(examples[row_start:row_start + 2]):
+            with row[index]:
+                if st.button(example, key=f"example_{row_start + index}", use_container_width=True):
+                    st.session_state.last_query = example
+                    st.session_state.auto_search = True
+                    st.rerun()
+
+
+def render_empty_guidance() -> None:
+    """Render compact empty guidance under the hero."""
+    st.markdown("""
+        <section class="empty-guidance">
+            <div class="empty-kicker">SYSTEM_IDLE</div>
+            <h2 class="empty-title">Awaiting query</h2>
+        </section>
+    """, unsafe_allow_html=True)
+
+
+def build_metric_card(
+    label: str,
+    value: str,
+    *,
+    mono: bool = False,
+    highlight: bool = False,
+    query_text: bool = False
+) -> str:
+    """Build metric card markup."""
+    value_classes = ["metric-value"]
+    if mono:
+        value_classes.append("metric-value--mono")
+    if query_text:
+        value_classes.append("metric-value--query")
+
+    card_class = "metric-card metric-card--highlight" if highlight else "metric-card"
+    return (
+        f'<div class="{card_class}">'
+        f'<div class="metric-label">{html.escape(label)}</div>'
+        f'<div class="{" ".join(value_classes)}">{html.escape(value)}</div>'
+        "</div>"
+    )
+
+
+def render_result_overview(data: LocationData) -> None:
+    """Render the main result card and the symmetric metric grid."""
+    postal_value = data.zip_code if data.zip_code and data.zip_code != "—" else "Not available"
+    safe_address = html.escape(data.address)
+    metrics_html = "".join([
+        build_metric_card("Original query", data.original_query, query_text=True),
+        build_metric_card("Postal code", postal_value, mono=True, highlight=True),
+        build_metric_card("Latitude", f"{float(data.lat):.6f}", mono=True),
+        build_metric_card("Longitude", f"{float(data.lng):.6f}", mono=True),
+    ])
+
+    st.markdown(f"""
+        <section class="result-shell">
+            <div class="result-badge">MATCH_LOCKED</div>
+            <div class="result-section-label">ENGLISH_MATCH</div>
+            <div class="result-address">{safe_address}</div>
+            <div class="metrics-grid">
+                {metrics_html}
+            </div>
+        </section>
+        <section class="detail-strip">
+            <div class="detail-item">
+                <span class="detail-key">Source</span>
+                <span class="detail-value">OpenStreetMap Nominatim</span>
+            </div>
+            <div class="detail-item">
+                <span class="detail-key">Resolved at</span>
+                <span class="detail-value">{html.escape(data.timestamp)}</span>
+            </div>
+        </section>
+    """, unsafe_allow_html=True)
+
+
+def render_map_panel(data: LocationData) -> None:
+    """Render the map panel."""
+    st.markdown("""
+        <div class="panel-marker panel-marker--map"></div>
+        <div class="panel-heading">
+            <div class="panel-kicker">MAP_NODE</div>
+            <h3 class="panel-title">GRID</h3>
+        </div>
+    """, unsafe_allow_html=True)
+
+    try:
+        st.map(
+            pd.DataFrame({
+                "lat": [float(data.lat)],
+                "lon": [float(data.lng)],
+            }),
+            zoom=ui_config.RESULT_MAP_ZOOM
+        )
+    except Exception as exc:
+        logger.error("Map display error: %s", type(exc).__name__)
+        render_status_message(
+            "Map unavailable",
+            "The map could not be rendered for this result.",
+            "You can still open the location in Google Maps.",
+            "error"
+        )
+
+
+def render_action_panel(data: LocationData) -> None:
+    """Render the right-side action panel."""
+    st.markdown("""
+        <div class="panel-marker panel-marker--actions"></div>
+        <div class="panel-heading">
+            <div class="panel-kicker">ACTIONS</div>
+            <h3 class="panel-title">EXECUTE</h3>
+        </div>
+    """, unsafe_allow_html=True)
+
+    safe_coords = quote(f"{data.lat},{data.lng}", safe="")
+    st.link_button(
+        "Open in Google Maps",
+        f"https://www.google.com/maps/search/?api=1&query={safe_coords}",
+        use_container_width=True
+    )
+    st.download_button(
+        "Export JSON",
+        data=json.dumps(asdict(data), indent=2, ensure_ascii=False),
+        file_name=f"location_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+        mime="application/json",
+        use_container_width=True
+    )
+    if st.button("New search", use_container_width=True, key="new_search"):
+        st.session_state.last_result = None
+        st.rerun()
+
+def render_result_panels(data: LocationData) -> None:
+    """Render the symmetric lower two-panel section."""
+    left_col, right_col = st.columns(2)
+
+    with left_col:
+        render_map_panel(data)
+
+    with right_col:
+        render_action_panel(data)
+
+
+def render_status_message(title: str, body: str, hint: str, variant: str) -> None:
+    """Render a structured status card."""
+    variant_map = {
+        "warning": ("status-card--warning", "WARN"),
+        "error": ("status-card--error", "ERROR"),
+        "info": ("status-card--info", "INFO"),
+    }
+    css_class, badge = variant_map.get(variant, variant_map["info"])
+
+    st.markdown(f"""
+        <section class="status-card {css_class}">
+            <div class="status-meta">{badge}</div>
+            <h3 class="status-title">{html.escape(title)}</h3>
+            <p class="status-body">{html.escape(body)}</p>
+            <p class="status-hint">{html.escape(hint)}</p>
+        </section>
+    """, unsafe_allow_html=True)
+
+
+def render_loading_state() -> None:
+    """Render a lightweight loading callout."""
+    render_status_message(
+        "QUERY_RUNNING",
+        "Resolving target.",
+        "Stand by.",
+        "info"
+    )
+
 
 def render_footer() -> None:
     """Render the application footer."""
     st.markdown("""
-        <div class="app-footer">
-            <span>GeoStudio AI</span>
-            <span class="footer-sep">·</span>
-            <span>Powered by OpenStreetMap Nominatim</span>
-            <span class="footer-sep">·</span>
-            <span>v2.0</span>
-        </div>
+        <footer class="app-footer">
+            <span>GEOSTUDIO//IL</span>
+            <span class="footer-divider">::</span>
+            <span>NOMINATIM</span>
+        </footer>
     """, unsafe_allow_html=True)
+
 
 def init_session_state() -> None:
     """Initialize Streamlit session state."""
-    if 'last_result' not in st.session_state:
+    if "last_result" not in st.session_state:
         st.session_state.last_result = None
+    if "last_query" not in st.session_state:
+        st.session_state.last_query = ""
+
 
 def main() -> None:
     """Main application entry point."""
-    # Setup
     inject_design_system()
-    render_header()
     init_session_state()
 
-    # Search Interface
-    query, submitted = render_search()
+    query, submitted = render_search_hero()
+    should_search = submitted
+    status_message: Optional[Tuple[str, str, str, str]] = None
 
-    # Handle Search
-    if submitted and query:
+    if should_search:
+        query_to_search = query or ""
+        st.session_state.last_query = query_to_search
+        st.session_state.last_result = None
+        loading_placeholder = st.empty()
+
         try:
             service = AddressService()
-            
-            with st.spinner("🔍 Searching..."):
-                results = service.search(query)
-            
-            # Store result
+            with loading_placeholder.container():
+                render_loading_state()
+            with st.spinner("Searching OpenStreetMap..."):
+                results = service.search(query_to_search)
+
             if results and results[0].status == "OK":
                 st.session_state.last_result = results[0]
-                st.rerun()
-                
-        except LocationNotFoundError as e:
-            logger.warning("Location not found: %s", query)
-            render_error(e.user_message, "warning")
-            
-        except ValidationError as e:
-            logger.warning("Validation error: %s", e)
-            render_error(e.user_message, "warning")
-            
-        except InvalidCoordinatesError as e:
-            logger.warning("Invalid coordinates: %s", e)
-            render_error(e.user_message, "warning")
-            
-        except RateLimitExceededError as e:
+            else:
+                status_message = (
+                    "No matching address found",
+                    "The geocoder did not return a usable result.",
+                    "Try a broader place name or remove extra detail.",
+                    "warning",
+                )
+
+        except LocationNotFoundError:
+            logger.warning("Location not found: %s", query_to_search)
+            status_message = (
+                "No matching address found",
+                "We could not find a result for that query.",
+                "Try a broader place name or remove extra detail. Results are limited to Israel.",
+                "warning",
+            )
+
+        except ValidationError as exc:
+            logger.warning("Validation error: %s", exc)
+            status_message = (
+                "Check the format",
+                "Use a street, place name, or coordinates.",
+                "Example: קישון 87 תל אביב",
+                "warning",
+            )
+
+        except InvalidCoordinatesError as exc:
+            logger.warning("Invalid coordinates: %s", exc)
+            status_message = (
+                "Check the format",
+                "Coordinates must use valid latitude and longitude values.",
+                "Example: 31.7683, 35.2137",
+                "warning",
+            )
+
+        except RateLimitExceededError:
             logger.warning("Rate limit exceeded")
-            render_error(e.user_message, "warning")
-            
-        except APIConnectionError as e:
-            logger.error("API connection error: %s", e)
-            render_error(e.user_message, "error")
-            
-        except GeoServiceException as e:
-            logger.error("Service error: %s", e)
-            render_error(e.user_message, "error")
-            
-        except Exception as e:
-            logger.error("Unexpected error: %s", e, exc_info=True)
-            render_error("An unexpected error occurred. Please try again.", "error")
+            status_message = (
+                "Too many requests",
+                "The geocoding service asked us to slow down.",
+                "Wait a few seconds and try again.",
+                "warning",
+            )
 
-    # Display Results or Empty State
+        except APIConnectionError as exc:
+            logger.error("API connection error: %s", exc)
+            status_message = (
+                "Location service is unavailable",
+                "We could not reach the geocoding service right now.",
+                "Please try again in a moment. The app may be waking up from sleep.",
+                "error",
+            )
+
+        except GeoServiceException as exc:
+            logger.error("Service error: %s", exc)
+            status_message = (
+                "Location service is unavailable",
+                "The lookup failed before a result could be returned.",
+                "Please try again in a moment. The app may be waking up from sleep.",
+                "error",
+            )
+
+        except Exception as exc:
+            logger.error("Unexpected error: %s", exc, exc_info=True)
+            status_message = (
+                "Unexpected error",
+                "Something went wrong while processing your query.",
+                "Please try again in a moment.",
+                "error",
+            )
+
+        finally:
+            loading_placeholder.empty()
+
+    if status_message:
+        render_status_message(*status_message)
+
     if st.session_state.last_result:
-        render_result_card(st.session_state.last_result)
+        render_result_overview(st.session_state.last_result)
+        render_result_panels(st.session_state.last_result)
     else:
-        render_empty_state()
+        render_empty_guidance()
 
-    # Footer
     render_footer()
 
 if __name__ == "__main__":
