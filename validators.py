@@ -37,7 +37,7 @@ class QueryValidator:
     @staticmethod
     def sanitize(query: str) -> str:
         """Sanitize query."""
-        sanitized = re.sub(r'[^\w\s\u0590-\u05FF\d"\'\-.,()]', ' ', query)
+        sanitized = re.sub(r'[^\w\s\u0590-\u05FF\d"\'.,()+-]', ' ', query)
         sanitized = ' '.join(sanitized.split())
         
         if sanitized != query:

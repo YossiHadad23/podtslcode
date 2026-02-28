@@ -23,7 +23,9 @@ DESIGN_SYSTEM_CSS = """
     --success: #10b981;
     --success-glow: rgba(16, 185, 129, 0.25);
     --warning: #f59e0b;
+    --warning-glow: rgba(245, 158, 11, 0.15);
     --error: #ef4444;
+    --error-glow: rgba(239, 68, 68, 0.15);
     
     --gradient-brand: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     --gradient-brand-alt: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
@@ -66,6 +68,8 @@ DESIGN_SYSTEM_CSS = """
     --ease-spring: cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
+/* ─── Base ─────────────────────────────────────────────────────────────── */
+
 .stApp {
     background: var(--void);
     font-family: 'Inter', 'Heebo', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -82,6 +86,8 @@ DESIGN_SYSTEM_CSS = """
 .main .block-container {
     padding-top: var(--space-6) !important;
 }
+
+/* ─── Animations ───────────────────────────────────────────────────────── */
 
 @keyframes fadeUp {
     from { opacity: 0; transform: translateY(20px); }
@@ -122,6 +128,13 @@ DESIGN_SYSTEM_CSS = """
     from { opacity: 0; transform: translateY(-10px); }
     to { opacity: 1; transform: translateY(0); }
 }
+
+@keyframes staggerFadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Brand Header ─────────────────────────────────────────────────────── */
 
 .brand-header {
     text-align: center;
@@ -198,6 +211,8 @@ DESIGN_SYSTEM_CSS = """
     opacity: 0.8;
 }
 
+/* ─── Search Input ─────────────────────────────────────────────────────── */
+
 .search-container {
     position: relative;
     max-width: 720px;
@@ -216,6 +231,7 @@ DESIGN_SYSTEM_CSS = """
     padding: 22px 28px !important;
     transition: all 0.4s var(--ease-smooth) !important;
     box-shadow: var(--shadow-md) !important;
+    height: auto !important;
 }
 
 .stTextInput > div > div > input:hover {
@@ -235,6 +251,8 @@ DESIGN_SYSTEM_CSS = """
     opacity: 0.6;
 }
 
+/* ─── Buttons ──────────────────────────────────────────────────────────── */
+
 .stButton > button {
     background: var(--gradient-brand) !important;
     border: none !important;
@@ -245,7 +263,7 @@ DESIGN_SYSTEM_CSS = """
     letter-spacing: 0.05em !important;
     padding: 18px 32px !important;
     transition: all 0.4s var(--ease-smooth) !important;
- text-transform: none !important;
+    text-transform: none !important;
     box-shadow: var(--shadow-md) !important;
     position: relative;
     overflow: hidden;
@@ -275,13 +293,44 @@ DESIGN_SYSTEM_CSS = """
     transform: translateY(0px) scale(0.98) !important;
 }
 
+/* ─── Form Submit Button — matches input height ────────────────────────── */
+
+.stFormSubmitButton > button {
+    background: var(--gradient-brand) !important;
+    border: none !important;
+    border-radius: var(--radius-xl) !important;
+    color: white !important;
+    font-weight: 700 !important;
+    font-size: 0.95rem !important;
+    letter-spacing: 0.04em !important;
+    padding: 22px 28px !important;
+    height: auto !important;
+    min-height: 0 !important;
+    transition: all 0.4s var(--ease-smooth) !important;
+    text-transform: none !important;
+    box-shadow: var(--shadow-md) !important;
+    position: relative;
+    overflow: hidden;
+}
+
+.stFormSubmitButton > button:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: var(--shadow-glow), var(--shadow-lg) !important;
+}
+
+.stFormSubmitButton > button:active {
+    transform: translateY(0px) scale(0.98) !important;
+}
+
+/* ─── Result Card ──────────────────────────────────────────────────────── */
+
 .result-card {
     position: relative;
     background: var(--glass-bg);
     backdrop-filter: blur(30px);
     border: 1.5px solid var(--glass-border);
     border-radius: var(--radius-2xl);
-    padding: var(--space-8);
+    padding: var(--space-8) var(--space-7);
     text-align: center;
     margin: var(--space-7) auto;
     max-width: 820px;
@@ -349,14 +398,47 @@ DESIGN_SYSTEM_CSS = """
 .result-address {
     position: relative;
     z-index: 1;
-    font-size: 1.6rem;
+    font-size: 1.5rem;
     font-weight: 600;
     color: var(--snow);
     line-height: 1.7;
     max-width: 680px;
-    margin: 0 auto;
+    margin: 0 auto var(--space-7);
     animation: fadeIn 0.7s 0.2s both;
 }
+
+/* ─── Data Grid (inside result card) ───────────────────────────────────── */
+
+.result-data-grid {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-4);
+    margin-top: var(--space-5);
+}
+
+.result-data-item {
+    background: rgba(15, 18, 24, 0.6);
+    border: 1px solid rgba(99, 102, 241, 0.1);
+    border-radius: var(--radius-md);
+    padding: var(--space-5) var(--space-4);
+    transition: all 0.3s var(--ease-smooth);
+    animation: staggerFadeUp 0.5s var(--ease-smooth) both;
+}
+
+.result-data-item:nth-child(1) { animation-delay: 0.3s; }
+.result-data-item:nth-child(2) { animation-delay: 0.4s; }
+.result-data-item:nth-child(3) { animation-delay: 0.5s; }
+
+.result-data-item:hover {
+    border-color: rgba(99, 102, 241, 0.3);
+    background: rgba(15, 18, 24, 0.8);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+/* ─── Data Labels & Values ─────────────────────────────────────────────── */
 
 .data-card {
     background: var(--glass-bg);
@@ -381,7 +463,7 @@ DESIGN_SYSTEM_CSS = """
     color: var(--silver);
     letter-spacing: 0.15em;
     text-transform: uppercase;
-    margin-bottom: var(--space-4);
+    margin-bottom: var(--space-3);
     display: flex;
     align-items: center;
     gap: var(--space-2);
@@ -390,11 +472,13 @@ DESIGN_SYSTEM_CSS = """
 
 .data-value {
     font-family: 'Space Grotesk', monospace;
-    font-size: 1.15rem;
+    font-size: 1.1rem;
     font-weight: 700;
     color: var(--accent-light);
     text-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
 }
+
+/* ─── Action Buttons (Download, Link, etc.) ────────────────────────────── */
 
 .stDownloadButton > button,
 .stLinkButton > a {
@@ -419,9 +503,48 @@ DESIGN_SYSTEM_CSS = """
     box-shadow: var(--shadow-md) !important;
 }
 
+/* ─── Error Cards ──────────────────────────────────────────────────────── */
+
+.error-card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-5) var(--space-6);
+    border-radius: var(--radius-lg);
+    backdrop-filter: blur(15px);
+    animation: slideDown 0.4s var(--ease-smooth);
+    margin: var(--space-5) 0;
+}
+
+.error-card--warning {
+    background: rgba(245, 158, 11, 0.08);
+    border: 1.5px solid rgba(245, 158, 11, 0.25);
+    box-shadow: 0 4px 20px var(--warning-glow);
+}
+
+.error-card--error {
+    background: rgba(239, 68, 68, 0.08);
+    border: 1.5px solid rgba(239, 68, 68, 0.25);
+    box-shadow: 0 4px 20px var(--error-glow);
+}
+
+.error-icon {
+    font-size: 1.4rem;
+    flex-shrink: 0;
+}
+
+.error-message {
+    color: var(--cloud);
+    font-size: 0.9rem;
+    font-weight: 500;
+    line-height: 1.5;
+}
+
+/* ─── Empty State ──────────────────────────────────────────────────────── */
+
 .empty-state {
     text-align: center;
-    padding: var(--space-8) var(--space-5) var(--space-9);
+    padding: var(--space-8) var(--space-5) var(--space-6);
     animation: fadeUp 0.9s var(--ease-smooth) 0.2s both;
 }
 
@@ -452,6 +575,8 @@ DESIGN_SYSTEM_CSS = """
     opacity: 0.9;
 }
 
+/* ─── Expander ─────────────────────────────────────────────────────────── */
+
 .streamlit-expanderHeader {
     background: var(--glass-bg) !important;
     backdrop-filter: blur(15px) !important;
@@ -479,6 +604,8 @@ DESIGN_SYSTEM_CSS = """
     animation: slideDown 0.3s ease;
 }
 
+/* ─── Code Blocks ──────────────────────────────────────────────────────── */
+
 div[data-testid="stCodeBlock"] {
     background: transparent !important;
     border: none !important;
@@ -497,6 +624,8 @@ div[data-testid="stCodeBlock"] pre {
     box-shadow: var(--shadow-sm) !important;
 }
 
+/* ─── Dividers ─────────────────────────────────────────────────────────── */
+
 hr {
     border: none !important;
     height: 1px !important;
@@ -504,12 +633,16 @@ hr {
     margin: var(--space-8) 0 !important;
 }
 
+/* ─── Alerts ───────────────────────────────────────────────────────────── */
+
 .stAlert {
     border-radius: var(--radius-md) !important;
     border: 1.5px solid rgba(99, 102, 241, 0.2) !important;
     backdrop-filter: blur(10px) !important;
     animation: slideDown 0.3s ease;
 }
+
+/* ─── Scrollbar ────────────────────────────────────────────────────────── */
 
 ::-webkit-scrollbar {
     width: 10px;
@@ -531,6 +664,8 @@ hr {
     background: var(--silver);
 }
 
+/* ─── Section Titles ───────────────────────────────────────────────────── */
+
 .section-title {
     font-family: 'Space Grotesk', sans-serif;
     font-size: 1.3rem;
@@ -543,14 +678,44 @@ hr {
     letter-spacing: -0.01em;
 }
 
+/* ─── Spinner ──────────────────────────────────────────────────────────── */
+
 .stSpinner > div {
     border-color: var(--accent) !important;
 }
+
+/* ─── Form (remove default border) ─────────────────────────────────────── */
 
 .stForm {
     border: none !important;
     background: transparent !important;
 }
+
+/* ─── Footer ───────────────────────────────────────────────────────────── */
+
+.app-footer {
+    text-align: center;
+    padding: var(--space-8) 0 var(--space-6);
+    margin-top: var(--space-9);
+    border-top: 1px solid rgba(99, 102, 241, 0.08);
+    color: var(--silver);
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    opacity: 0.6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+    animation: fadeIn 1s 0.5s both;
+}
+
+.footer-sep {
+    color: rgba(99, 102, 241, 0.3);
+    font-size: 0.5rem;
+}
+
+/* ─── Mobile Responsive ────────────────────────────────────────────────── */
 
 @media (max-width: 768px) {
     .block-container {
@@ -598,20 +763,35 @@ hr {
         border-radius: var(--radius-lg) !important;
     }
 
-    .result-card,
+    .stFormSubmitButton > button {
+        padding: 16px 18px !important;
+        border-radius: var(--radius-lg) !important;
+        font-size: 0.85rem !important;
+    }
+
+    .result-card {
+        padding: var(--space-6) var(--space-5) !important;
+        border-radius: var(--radius-lg) !important;
+    }
+
+    .result-data-grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-3);
+    }
+
+    .result-address {
+        font-size: 1.15rem;
+        line-height: 1.5;
+    }
+
     .data-card,
     .streamlit-expanderContent {
         padding: var(--space-5) !important;
         border-radius: var(--radius-md) !important;
     }
 
-    .result-address {
-        font-size: 1.2rem;
-        line-height: 1.5;
-    }
-
     .empty-state {
-        padding: var(--space-6) var(--space-3) var(--space-7);
+        padding: var(--space-6) var(--space-3) var(--space-5);
     }
 
     .empty-illustration {
@@ -638,8 +818,22 @@ hr {
     .stFormSubmitButton > button {
         width: 100% !important;
         min-height: 44px !important;
-        padding: 12px 14px !important;
         font-size: 0.9rem !important;
+    }
+
+    .error-card {
+        padding: var(--space-4) var(--space-5);
+    }
+
+    .app-footer {
+        flex-direction: column;
+        gap: var(--space-2);
+        padding: var(--space-6) 0 var(--space-5);
+        margin-top: var(--space-7);
+    }
+
+    .footer-sep {
+        display: none;
     }
 }
 
